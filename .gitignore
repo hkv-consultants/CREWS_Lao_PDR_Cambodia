@@ -1,0 +1,23 @@
+# Pixi
+.pixi/
+*.lock
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+
+# Jupyter
+.ipynb_checkpoints/
+*.executed.ipynb
+
+# Data and outputs (auto-created by postinstall)
+data/
+outputs/
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

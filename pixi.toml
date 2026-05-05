@@ -1,0 +1,87 @@
+[workspace]
+name = "CREWS_UFFFS_Nowcast"
+version = "1.2.0"
+description = "CREWS UFFFS Workshop – GSMaP satellite rainfall download, nowcasting, and rain-gauge validation for Vientiane (Lao PDR) and Phnom Penh (Cambodia)"
+channels = ["conda-forge"]
+platforms = ["win-64"]
+
+[dependencies]
+# Keep the Windows geospatial stack conservative. Rasterio/GDAL DLL errors are often caused
+# by mixed or too-new binary builds. These pins are intentionally less aggressive.
+python = "3.11.*"
+numpy = "1.26.*"
+pandas = "2.2.*"
+scipy = "1.14.*"
+
+# Notebook environment
+jupyterlab = "4.*"
+notebook = "7.*"
+nbconvert = "7.*"
+ipykernel = "6.*"
+ipywidgets = "8.*"
+setuptools = ">=69,<81"
+
+# Data access: GSMaP via Google Earth Engine
+earthengine-api = ">=1.0"
+boto3 = ">=1.34"
+botocore = ">=1.34"
+s3fs = ">=2024.0"
+requests = ">=2.31"
+tqdm = ">=4.66"
+
+# Raster, geospatial, and NetCDF handling.
+# The GDAL/rasterio pins are the key fix for the Windows DLL issue.
+gdal = "3.8.*"
+rasterio = "1.3.*"
+rioxarray = "0.15.*"
+pyproj = "3.6.*"
+shapely = "2.0.*"
+cartopy = "0.23.*"
+geopandas = "0.14.*"
+xarray = "2024.*"
+netcdf4 = "1.6.*"
+h5py = "3.11.*"
+h5netcdf = "1.3.*"
+dask = "2024.*"
+
+# Plotting, basemaps, and animation
+matplotlib = "3.8.*"
+contextily = "1.6.*"
+xyzservices = "2024.*"
+imageio = "2.*"
+pillow = "10.*"
+
+# Precipitation nowcasting
+pysteps = "1.8.*"
+
+[environments]
+default = { solve-group = "default" }
+
+[tasks]
+# Kernel registration. Display name is what shows up in the JupyterLab kernel picker.
+setup-kernel = "python -m ipykernel install --user --name crews_ufffs_nowcast --display-name 'CREWS UFFFS Nowcast (pixi)'"
+list-kernels = "jupyter kernelspec list"
+clean-kernel = "jupyter kernelspec remove -f crews_ufffs_nowcast || echo 'Kernel not found'"
+
+# Quick import tests. `check-raster` isolates the GDAL/rasterio issue.
+check-raster = '''python -c "import rasterio; import pyproj; import rioxarray; print('Raster stack OK:', rasterio.__version__)"'''
+check = '''python -c "import ee, boto3, botocore, requests, tqdm, numpy, pandas, xarray, rasterio, rioxarray, matplotlib, contextily, xyzservices, imageio, pysteps; print('Environment OK')"'''
+
+# Run this after pixi install. It creates the folders used by the notebooks.
+postinstall = { cmd = '''python -c "from pathlib import Path; dirs = ('data/gsmap/raw', 'data/gsmap/processed', 'data/gauges', 'outputs/figures', 'outputs/nowcasts', 'outputs/tables'); [Path(d).mkdir(parents=True, exist_ok=True) for d in dirs]; print('Project folders ready')"''', depends-on = ["setup-kernel", "check-raster", "check"] }
+
+# Start JupyterLab after the environment check and kernel setup.
+notebook = { cmd = "jupyter lab", depends-on = ["postinstall"] }
+lab = { cmd = "jupyter lab", depends-on = ["postinstall"] }
+
+# Optional helpers for running the notebooks headlessly.
+run-download = "jupyter nbconvert --to notebook --execute 1_Download_GSMaP_Rainfall.ipynb --output 1_Download_GSMaP_Rainfall.executed.ipynb"
+run-nowcast = "jupyter nbconvert --to notebook --execute 2_Nowcast_GSMaP_Rainfall.ipynb --output 2_Nowcast_GSMaP_Rainfall.executed.ipynb"
+run-interpret = "jupyter nbconvert --to notebook --execute 3_Interpret_GSMaP_Nowcast.ipynb --output 3_Interpret_GSMaP_Nowcast.executed.ipynb"
+
+# Earth Engine authentication is interactive and should be run manually once per machine/user.
+ee-auth = "earthengine authenticate"
+ee-test = '''python -c "import ee; ee.Initialize(); print('Earth Engine authentication OK')"'''
+
+[pypi-dependencies]
+# Keep this empty. Do not install rasterio/rioxarray/GDAL with pip in this project.
